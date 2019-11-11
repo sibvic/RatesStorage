@@ -1,10 +1,14 @@
-﻿using System;
+﻿using ProfitRobots.RatesStorage.Exceptions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace ProfitRobots.RatesStorage
 {
+
     public class RatesStorage
     {
         private readonly string _path;
@@ -29,9 +33,7 @@ namespace ProfitRobots.RatesStorage
         public void SaveData(string provider, string symbol, List<Candle> prices)
         {
             var filePath = GetPathToData(provider, symbol, prices.First().Date);
-            var symbolPath = Path.GetDirectoryName(filePath);
-            if (!Directory.Exists(symbolPath))
-                Directory.CreateDirectory(symbolPath);
+            EnsurePathExists(filePath);
             using (var stream = new StreamWriter(filePath))
             {
                 foreach (var price in prices)
@@ -41,6 +43,13 @@ namespace ProfitRobots.RatesStorage
                 stream.Flush();
                 stream.Close();
             }
+        }
+
+        private static void EnsurePathExists(string filePath)
+        {
+            var symbolPath = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(symbolPath))
+                Directory.CreateDirectory(symbolPath);
         }
 
         /// Loads data from the storage. 
@@ -55,21 +64,20 @@ namespace ProfitRobots.RatesStorage
             while (from < to)
             {
                 var fileName = GetPathToData(provider, symbol, from);
-                List<Candle> candles = ReadData(fileName);
-                if (!candles.Any())
-                {
-                    from = new DateTime(from.Year, from.Month, from.Day).ScrollTo(DayOfWeek.Monday);
-                    var newFile = GetPathToData(provider, symbol, from);
-                    while (from < to && newFile == fileName)
-                    {
-                        from = from.AddDays(7);
-                    }
-                    continue;
-                }
-                allCandles.AddRange(candles.Where(c => c.Date >= from && c.Date <= to));
-                from = candles.Last().Date;
+                var candles = ReadData(fileName).Where(c => c.Date >= from && c.Date <= to);
+                if (candles.Any())
+                    allCandles.AddRange(candles);
+                from = GetNextDate(from);
             }
             return allCandles;
+        }
+
+        private static DateTime GetNextDate(DateTime from)
+        {
+            var newData = new DateTime(from.Year, from.Month, from.Day);
+            if (newData.DayOfWeek == DayOfWeek.Monday)
+                return newData.AddDays(1).ScrollTo(DayOfWeek.Monday);
+            return newData.ScrollTo(DayOfWeek.Monday);
         }
 
         /// <summary>
@@ -83,18 +91,92 @@ namespace ProfitRobots.RatesStorage
             var path = GetPathToSymbol(provider, symbol);
             if (!Directory.Exists(path))
                 return (null, null);
-            var files = Directory.GetFiles(path, "*.*").OrderBy(f => f);
+            var files = Directory.GetFiles(path, "*.csv");
             if (files.Count() == 0)
                 return (null, null);
-            var firstDate = ReadData(files.First()).Min(c => c.Date);
-            var lastDate = ReadData(files.Last()).Max(c => c.Date);
-            return (firstDate, lastDate);
+            
+            try
+            {
+                (string first, string last) = GetFirstLastFiles(files.ToList());
+                var firstDate = ReadData(first).Min(c => c.Date);
+                var lastDate = ReadData(last).Max(c => c.Date);
+                return (firstDate, lastDate);
+            }
+            catch (NoDataException)
+            {
+                return (null, null);
+            }
         }
 
+        Regex _filesPattern = new Regex("(\\d+)-(\\d+)");
+        private (string first, string last) GetFirstLastFiles(List<string> files)
+        {
+            string first = null;
+            int firstYear = 0;
+            int firstWeek = 0;
+
+            string last = null;
+            int lastYear = 0;
+            int lastWeek = 0;
+            foreach (var file in files)
+            {
+                var match = _filesPattern.Match(file);
+                if (!match.Success)
+                    continue;
+                if (!int.TryParse(match.Groups[1].Value, out int year) || !int.TryParse(match.Groups[2].Value, out int week))
+                    continue;
+                if (first == null || firstYear > year || (firstYear == year && firstWeek > week))
+                {
+                    first = file;
+                    firstYear = year;
+                    firstWeek = week;
+                }
+                if (last == null || lastYear < year || (lastYear == year && lastWeek < week))
+                {
+                    last = file;
+                    lastYear = year;
+                    lastWeek = week;
+                }
+
+            }
+            return (first, last);
+        }
+
+        
+        public void SaveSymbolInfo(string provider, string symbol, SymbolInfo info)
+        {
+            info.Name = symbol;
+            var rootFolder = GetPathToSymbol(provider, symbol);
+            var infoFileName = Path.Combine(rootFolder, "info.json");
+            EnsurePathExists(infoFileName);
+            if (File.Exists(infoFileName))
+                return;
+
+            var json = JsonConvert.SerializeObject(info);
+            File.WriteAllText(infoFileName, json);
+        }
+
+        public SymbolInfo GetSymbolInfo(string provider, string symbol)
+        {
+            var rootFolder = GetPathToSymbol(provider, symbol);
+            var infoFileName = Path.Combine(rootFolder, "info.json");
+            if (!File.Exists(infoFileName))
+                return null;
+            
+            var json = File.ReadAllText(infoFileName);
+            return JsonConvert.DeserializeObject<SymbolInfo>(json);
+        }
+
+        /// <summary>
+        /// Reads data from the file
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <exception cref="NoDataException">When no data present</exception>
+        /// <returns></returns>
         private List<Candle> ReadData(string fileName)
         {
             if (!File.Exists(fileName))
-                return new List<Candle>();
+                throw new NoDataException();
             var lines = File.ReadAllLines(fileName);
             List<Candle> data = new List<Candle>();
             foreach (var line in lines)
@@ -104,7 +186,6 @@ namespace ProfitRobots.RatesStorage
             }
             return data;
         }
-
         private string GetPathToSymbol(string provider, string symbol)
         {
             return Path.Combine(_path, provider, symbol.Replace("/", ""));

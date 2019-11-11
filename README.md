@@ -1,2 +1,3 @@
-# RatesStorage
-Storage for the rates historical data 
+# Rates Storage
+
+Store rates/quotes
