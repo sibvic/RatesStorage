@@ -8,20 +8,12 @@ using System.Text.RegularExpressions;
 
 namespace ProfitRobots.RatesStorage
 {
-
-    public class RatesStorage
+    class RatesStorage : IRatesStorage
     {
         private readonly string _path;
-        RatesStorage(string path)
+        public RatesStorage(string path)
         {
             _path = path;
-        }
-
-        public static RatesStorage Create(string outputPath)
-        {
-            if (!Directory.Exists(outputPath))
-                Directory.CreateDirectory(outputPath);
-            return new RatesStorage(outputPath);
         }
 
         public bool DataExists(string provider, string symbol, DateTime date)
@@ -94,7 +86,7 @@ namespace ProfitRobots.RatesStorage
             var files = Directory.GetFiles(path, "*.csv");
             if (files.Count() == 0)
                 return (null, null);
-            
+
             try
             {
                 (string first, string last) = GetFirstLastFiles(files.ToList());
@@ -142,7 +134,7 @@ namespace ProfitRobots.RatesStorage
             return (first, last);
         }
 
-        
+
         public void SaveSymbolInfo(string provider, string symbol, SymbolInfo info)
         {
             info.Name = symbol;
@@ -162,7 +154,7 @@ namespace ProfitRobots.RatesStorage
             var infoFileName = Path.Combine(rootFolder, "info.json");
             if (!File.Exists(infoFileName))
                 return null;
-            
+
             var json = File.ReadAllText(infoFileName);
             return JsonConvert.DeserializeObject<SymbolInfo>(json);
         }

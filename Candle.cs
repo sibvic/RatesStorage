@@ -7,7 +7,7 @@ namespace ProfitRobots.RatesStorage
         public DateTime Date { get; set; }
         public OHLC Bid { get; set; }
         public OHLC Ask { get; set; }
-        public long Volume { get; set; }
+        public double Volume { get; set; }
 
         public override bool Equals(object obj)
         {

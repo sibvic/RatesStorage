@@ -17,38 +17,52 @@ namespace ProfitRobots.RatesStorage
             stream.Write(separator);
             stream.Write(candle.Bid.Close);
             stream.Write(separator);
-            stream.Write(candle.Ask.Open);
-            stream.Write(separator);
-            stream.Write(candle.Ask.High);
-            stream.Write(separator);
-            stream.Write(candle.Ask.Low);
-            stream.Write(separator);
-            stream.Write(candle.Ask.Close);
-            stream.Write(separator);
+            if (candle.Ask != null)
+            {
+                stream.Write(candle.Ask.Open);
+                stream.Write(separator);
+                stream.Write(candle.Ask.High);
+                stream.Write(separator);
+                stream.Write(candle.Ask.Low);
+                stream.Write(separator);
+                stream.Write(candle.Ask.Close);
+                stream.Write(separator);
+            }
             stream.WriteLine(candle.Volume.ToString());
         }
 
         public static Candle Deserialize(string text, char separator)
         {
             var items = text.Split(new char[] { separator }, StringSplitOptions.RemoveEmptyEntries);
+            OHLC ask = null;
+            double volume;
+            if (items.Length == 10)
+            {
+                volume = double.Parse(items[9]);
+                ask = new OHLC()
+                {
+                    Open = decimal.Parse(items[5]),
+                    High = decimal.Parse(items[6]),
+                    Low = decimal.Parse(items[7]),
+                    Close = decimal.Parse(items[8]),
+                };
+            }
+            else
+            {
+                volume = double.Parse(items[5]);
+            }
             return new Candle()
             {
                 Date = DateTime.Parse(items[0]),
                 Bid = new OHLC()
                 {
-                    Open = double.Parse(items[1]),
-                    High = double.Parse(items[2]),
-                    Low = double.Parse(items[3]),
-                    Close = double.Parse(items[4])
+                    Open = decimal.Parse(items[1]),
+                    High = decimal.Parse(items[2]),
+                    Low = decimal.Parse(items[3]),
+                    Close = decimal.Parse(items[4])
                 },
-                Ask = new OHLC()
-                {
-                    Open = double.Parse(items[5]),
-                    High = double.Parse(items[6]),
-                    Low = double.Parse(items[7]),
-                    Close = double.Parse(items[8]),
-                },
-                Volume = long.Parse(items[9])
+                Ask = ask,
+                Volume = volume
             };
         }
     }
