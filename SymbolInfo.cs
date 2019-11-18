@@ -2,7 +2,7 @@ namespace ProfitRobots.RatesStorage
 {
     public class SymbolInfo
     {
-
+        public string Provider { get; set; }
         public string ContractCurrency { get; set; }
         public string ProfitCurrency { get; set; }
         public decimal BaseUnitSize { get; set; }

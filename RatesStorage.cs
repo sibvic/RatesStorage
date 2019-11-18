@@ -156,7 +156,9 @@ namespace ProfitRobots.RatesStorage
                 return null;
 
             var json = File.ReadAllText(infoFileName);
-            return JsonConvert.DeserializeObject<SymbolInfo>(json);
+            var info = JsonConvert.DeserializeObject<SymbolInfo>(json);
+            info.Provider = provider;
+            return info;
         }
 
         /// <summary>
