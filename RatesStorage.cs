@@ -142,7 +142,13 @@ namespace ProfitRobots.RatesStorage
             var infoFileName = Path.Combine(rootFolder, "info.json");
             EnsurePathExists(infoFileName);
             if (File.Exists(infoFileName))
-                return;
+            {
+                if (!info.WithoutHistory)
+                {
+                    return;
+                }
+                File.Delete(infoFileName);
+            }
 
             var json = JsonConvert.SerializeObject(info);
             File.WriteAllText(infoFileName, json);
