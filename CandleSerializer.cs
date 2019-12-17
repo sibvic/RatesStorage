@@ -39,13 +39,7 @@ namespace ProfitRobots.RatesStorage
             if (items.Length == 10)
             {
                 volume = double.Parse(items[9]);
-                ask = new OHLC()
-                {
-                    Open = decimal.Parse(items[5]),
-                    High = decimal.Parse(items[6]),
-                    Low = decimal.Parse(items[7]),
-                    Close = decimal.Parse(items[8]),
-                };
+                ask = ParseOHLC(items[5], items[6], items[7], items[8]);
             }
             else
             {
@@ -54,15 +48,20 @@ namespace ProfitRobots.RatesStorage
             return new Candle()
             {
                 Date = DateTime.Parse(items[0]),
-                Bid = new OHLC()
-                {
-                    Open = decimal.Parse(items[1]),
-                    High = decimal.Parse(items[2]),
-                    Low = decimal.Parse(items[3]),
-                    Close = decimal.Parse(items[4])
-                },
+                Bid = ParseOHLC(items[1], items[2], items[3], items[4]),
                 Ask = ask,
                 Volume = volume
+            };
+        }
+        
+        private static OHLC ParseOHLC(string open, string high, string low, string close)
+        {
+            return new OHLC()
+            {
+                Open = decimal.Parse(open),
+                High = decimal.Parse(high),
+                Low = decimal.Parse(low),
+                Close = decimal.Parse(close),
             };
         }
     }
