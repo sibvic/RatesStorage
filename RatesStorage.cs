@@ -52,7 +52,9 @@ namespace ProfitRobots.RatesStorage
         {
             var symbolPath = Path.GetDirectoryName(filePath);
             if (!Directory.Exists(symbolPath))
+            {
                 Directory.CreateDirectory(symbolPath);
+            }
         }
 
         /// Loads data from the storage. 
@@ -61,7 +63,9 @@ namespace ProfitRobots.RatesStorage
         public List<Candle> LoadData(string provider, string symbol, DateTime from, DateTime to)
         {
             if (from > to)
+            {
                 throw new ArgumentOutOfRangeException("From date should be earlier that to date.");
+            }
 
             List<Candle> allCandles = new List<Candle>();
             while (from < to)
@@ -69,7 +73,9 @@ namespace ProfitRobots.RatesStorage
                 var fileName = GetPathToData(provider, symbol, from);
                 var candles = ReadData(fileName).Where(c => c.Date >= from && c.Date <= to);
                 if (candles.Any())
+                {
                     allCandles.AddRange(candles);
+                }
                 from = GetNextDate(from);
             }
             return allCandles;
