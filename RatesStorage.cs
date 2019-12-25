@@ -71,10 +71,16 @@ namespace ProfitRobots.RatesStorage
             while (from < to)
             {
                 var fileName = GetPathToData(provider, symbol, from);
-                var candles = ReadData(fileName).Where(c => c.Date >= from && c.Date <= to);
-                if (candles.Any())
+                try
                 {
-                    allCandles.AddRange(candles);
+                    var candles = ReadData(fileName).Where(c => c.Date >= from && c.Date <= to);
+                    if (candles.Any())
+                    {
+                        allCandles.AddRange(candles);
+                    }
+                }
+                catch (NoDataException)
+                {
                 }
                 from = GetNextDate(from);
             }
