@@ -14,5 +14,6 @@ namespace ProfitRobots.RatesStorage
         public string Name { get; set; }
         public bool MarginEnabled { get; set; } = true;
         public bool WithoutHistory { get; set; } = false;
+        public bool EndOfHistoryReached { get; set; } = false;
     }
 }
