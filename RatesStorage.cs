@@ -16,6 +16,17 @@ namespace ProfitRobots.RatesStorage
             _path = path;
         }
 
+        public IEnumerable<string> GetProviders()
+        {
+            return Directory.EnumerateDirectories(_path);
+        }
+
+        public IEnumerable<string> GetSymbols(string provider)
+        {
+            var pathToSymbols = Path.Combine(_path, provider);
+            return Directory.EnumerateDirectories(pathToSymbols);
+        }
+
         public bool DataExists(string provider, string symbol, DateTime date)
         {
             string fullpath = GetPathToData(provider, symbol, date);
@@ -41,7 +52,9 @@ namespace ProfitRobots.RatesStorage
         {
             var symbolPath = Path.GetDirectoryName(filePath);
             if (!Directory.Exists(symbolPath))
+            {
                 Directory.CreateDirectory(symbolPath);
+            }
         }
 
         /// Loads data from the storage. 
@@ -50,15 +63,25 @@ namespace ProfitRobots.RatesStorage
         public List<Candle> LoadData(string provider, string symbol, DateTime from, DateTime to)
         {
             if (from > to)
+            {
                 throw new ArgumentOutOfRangeException("From date should be earlier that to date.");
+            }
 
             List<Candle> allCandles = new List<Candle>();
             while (from < to)
             {
                 var fileName = GetPathToData(provider, symbol, from);
-                var candles = ReadData(fileName).Where(c => c.Date >= from && c.Date <= to);
-                if (candles.Any())
-                    allCandles.AddRange(candles);
+                try
+                {
+                    var candles = ReadData(fileName).Where(c => c.Date >= from && c.Date <= to);
+                    if (candles.Any())
+                    {
+                        allCandles.AddRange(candles);
+                    }
+                }
+                catch (NoDataException)
+                {
+                }
                 from = GetNextDate(from);
             }
             return allCandles;
@@ -100,7 +123,7 @@ namespace ProfitRobots.RatesStorage
             }
         }
 
-        Regex _filesPattern = new Regex("(\\d+)-(\\d+)");
+        readonly Regex _filesPattern = new Regex("(\\d+)-(\\d+)");
         private (string first, string last) GetFirstLastFiles(List<string> files)
         {
             string first = null;
@@ -133,7 +156,6 @@ namespace ProfitRobots.RatesStorage
             }
             return (first, last);
         }
-
 
         public void SaveSymbolInfo(string provider, string symbol, SymbolInfo info)
         {
