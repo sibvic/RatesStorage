@@ -165,10 +165,6 @@ namespace ProfitRobots.RatesStorage
             EnsurePathExists(infoFileName);
             if (File.Exists(infoFileName))
             {
-                if (!info.WithoutHistory)
-                {
-                    return;
-                }
                 File.Delete(infoFileName);
             }
 
